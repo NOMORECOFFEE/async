@@ -13,6 +13,7 @@ void merge(
 
 template<typename RandomAccessIteratorT>
 void sort(
+      boost::asio::io_service &theService
       RandomAccessIteratorT theBegin
     , RandomAccessIteratorT theEnd
     , boost::function<void()> theCallback
@@ -28,8 +29,8 @@ void sort(
         RandomAccessIteratorT middle = theBegin + size / 2;
         
         async<void(), void()>(
-              boost::bind(&sort<RandomAccessIteratorT>, theBegin, middle, _1)
-            , boost::bind(&sort<RandomAccessIteratorT>, middle, theEnd, _1)
+              boost::bind(&sort<RandomAccessIteratorT>, boost::ref(theService) theBegin, middle, _1)
+            , boost::bind(&sort<RandomAccessIteratorT>, boost::ref(theService), middle, theEnd, _1)
             , boost::bind(&merge<RandomAccessIteratorT>, theBegin, theEnd, theCallback)
         );
     }
