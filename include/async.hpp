@@ -2,8 +2,14 @@
 #define ASYNC_INCLUDED_HPP 1
 
 // boost headers
-#include <boost/function_types/parameter_types.hpp>
-#include <boost/type_traits/remove_reference.hpp>
+#include <boost/optional/optional_fwd.hpp>
+
+// declaration, forward
+template<class T>
+struct RemoveRef;
+
+template<typename SignT>
+struct ParameterTypes;
 
 struct RemoveRef
 {
@@ -12,7 +18,7 @@ struct RemoveRef
     template<class T>
     struct result<void(T)>
     {
-        typedef typename boost::remove_reference<T>::type type;    
+        typedef typename RemoveRef<T>::Type type;    
     };
     
     template<class T>
@@ -28,11 +34,7 @@ struct SetPack
     template<class SignT>
     struct result
     {
-        typedef typename boost::parameter_types<SignT>::type ParameterTypes;
-        
-        typedef boost::optional<
-            typename boost::fusion::transform<ParameterTypes, RemoveRef>::type
-        > type
+        typedef typename ParameterTypes<SignT>::Type type;
     };
 }
 
