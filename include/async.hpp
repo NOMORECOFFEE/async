@@ -22,7 +22,7 @@ struct RemoveRef
     };
     
     template<class T>
-    typename result<void(T)>::type operator()(T theValue) const
+    typename RemoveRef<T>::type operator()(T theValue) const
     {
         return theValue
     }
