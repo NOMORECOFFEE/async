@@ -2,7 +2,7 @@
 
 #include <boost/fusion/functional/adapter/unfused.hpp>
 #include <boost/fusion/container/vector.hpp>
-#include <boost/functional/lightweight_forward_adapter.hpp>
+#include <boost/function.hpp>
 
 using namespace boost;
 using namespace boost::fusion;
@@ -12,7 +12,7 @@ struct UnfusedCall
     typedef void result_type;
 
     template<class SeqT>
-    void operator()(SeqT const &theSeq) const
+    void operator()(SeqT theSeq) const
     {
     }
 };
@@ -20,7 +20,7 @@ struct UnfusedCall
 
 BOOST_AUTO_TEST_CASE(TestUnfusedCall)
 {
-    lightweight_forward_adapter< unfused<UnfusedCall> > c;
+    function<void (int, int, int)> c = unfused<UnfusedCall>();
 
     c(1, 2, 3);
 }
