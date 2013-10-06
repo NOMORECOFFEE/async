@@ -38,6 +38,17 @@ struct SetPack
     };
 }
 
+template<ASYNC_typename_T, ASYNC_typename_A, ContinuationF>
+void async(boost::asio::io_service &theService, ASYNC_A_const_ref_a, ContinuationF onComplite)
+{
+    async_invoke(theService, ASYNC_args, theService.wrap( onComplite ));   
+}
+
+template<ASYNC_typename_C, ASYNC_typename_A, ContinuationF>
+void async_invoke(boost::asio::io_service &theService, ASYNC_A_const_ref_a, ContinuationF onComplite)
+{
+    
+}
 
 
 #endif // ASYNC_INCLUDED_HPP
