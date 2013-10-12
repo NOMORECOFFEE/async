@@ -121,7 +121,7 @@ void async_invoke(boost::asio::io_service &theService, ASYNC_PP_A_a, Continuatio
 
 }
 
-template<SeqT, typename PtrT> inline
+template<int i, typename SeqT, typename PtrT> inline
 void async_invoke(boost::asio::io_service &theService, SeqT theSeq, PtrT theState)
 {
     using boost::fusion::at;
