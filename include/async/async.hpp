@@ -15,29 +15,29 @@ struct ParameterTypes;
 struct RemoveRef
 {
     template<class SingT> struct result;
-    
+
     template<class T>
     struct result<void(T)>
     {
-        typedef typename RemoveRef<T>::Type type;    
+        typedef typename RemoveRef<T>::Type type;
     };
-    
+
     template<class T>
     typename RemoveRef<T>::type operator()(T theValue) const
     {
         return theValue
     }
-    
+
 };
 
-struct SetPack
+template<typename SignT, int id>
+struct arguments_list
 {
-    template<class SignT>
-    struct result
-    {
-        typedef typename ParameterTypes<SignT>::Type type;
-    };
-}
+    typedef typename ParameterTypes<SignT>::Type Type;
+
+    boost::optional<Type> value;
+};
+
 
 #define BOOST_PP_ITERATION_PARAMS_1 (3, (1, 10, "async.hpp"))
 #include BOOST_PP_ITERATE()
@@ -58,6 +58,17 @@ struct async_state
     {
     }
 }
+
+#define ASYNC_PP_base_from_member_DEF(z, n, type) \
+    arguments_list<BOOST_PP_CAT(type, n), n>
+
+template<ASYNC_PP_typename_T>
+struct arguments_list
+    : BOOST_PP_REPEAT(ASYNC_PP_ITERATION, ASYNC_PP_base_from_member_DEF, T)
+{
+};
+
+#undef ASYNC_PP_base_from_member_DEF
 
 template<int i, typename AsyncStateT>
 struct task_with_continuation
