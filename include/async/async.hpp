@@ -25,7 +25,7 @@ struct ArgumentsList
 template<int id, SignT>
 ArgumentsList<SignT, id> &getReference(ArgumentsList<SignT, id> &theRef)
 {
-    return theRef;
+    return theRef;
 }
 
 #define BOOST_PP_ITERATION_PARAMS_1 (3, (1, 10, "async.hpp"))
@@ -109,8 +109,6 @@ void async(boost::asio::io_service &theService, ASYNC_PP_A_a, ContinuationF onCo
 template<ASYNC_PP_typename_T, ASYNC_PP_typename_A, typename ContinuationF> inline
 void async_invoke(boost::asio::io_service &theService, ASYNC_PP_A_a, ContinuationF onComplite)
 {
-    typedef async_state<ASYNC_PP_A, ContinuationF>;
-    
     boost::shared_ptr<
         AsyncState<ASYNC_PP_A, ContinuationF>
     > state = boost::make_shared( onComplite );
