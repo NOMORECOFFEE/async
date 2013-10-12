@@ -22,6 +22,11 @@ struct ArgumentsList
     boost::optional<Type> value;
 };
 
+template<int id, SignT>
+ArgumentsList<SignT, id> &getReference(ArgumentsList<SignT, id> &theRef)
+{
+    return theRef;
+}
 
 #define BOOST_PP_ITERATION_PARAMS_1 (3, (1, 10, "async.hpp"))
 #include BOOST_PP_ITERATE()
@@ -57,12 +62,6 @@ struct ArgumentsList
 
 #undef ASYNC_PP_base_from_member_DEF
 
-template<int i, ASYNC_PP_typename_T>
-ArgumentsList<i, ASYNC_PP_typename_T> &getReference(ArgumentsList<i, ASYNC_PP_typename_T> &theRef)
-{
-    return theRef;
-}
-
 template<int id, typename PtrT>
 struct TaskWithContinuation
 {
@@ -76,7 +75,7 @@ struct TaskWithContinuation
     template<typename SeqT>
     void operator()(SeqT theSeq) const
     {
-        getReference<id>( m_state->m_arguments ) = theSeq;
+        getReference<id>( m_state->m_arguments ).value = theSeq;
 
         int volatile *counter = &(m_state->m_counter);
 
