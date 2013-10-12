@@ -112,7 +112,7 @@ void async_invoke(boost::asio::io_service &theService, ASYNC_PP_A_a, Continuatio
     typedef async_state<ASYNC_PP_A, ContinuationF>;
     
     boost::shared_ptr<
-        async_state<ASYNC_PP_A, ContinuationF>
+        AsyncState<ASYNC_PP_A, ContinuationF>
     > state = boost::make_shared( onComplite );
     
     async_invoke<ASYNC_PP_ITERATION>(
