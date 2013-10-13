@@ -1,10 +1,8 @@
-#include <async/async_fwd.hpp>
+#include <async/async.hpp>
 
 // boost headers
-#include <boost/asio/io_service.hpp>
 #include <boost/function.hpp>
 #include <boost/ref.hpp>
-#include <boost/bind.hpp>
 
 // stl headers
 #include <algorithm>
@@ -38,11 +36,11 @@ void sort(
     else
     {
         RandomAccessIteratorT middle = theBegin + size / 2;
-        
-        async<void(), void()>(
-              boost::bind(&sort<RandomAccessIteratorT>, boost::ref(theService) theBegin, middle, boost::_1)
-            , boost::bind(&sort<RandomAccessIteratorT>, boost::ref(theService), middle, theEnd, boost::_1)
-            , boost::bind(&merge<RandomAccessIteratorT>, theBegin, theEnd, theCallback)
+
+        callAsync<void(), void()>(
+            boost::bind<void>(sort<RandomAccessIteratorT>, boost::ref( theService ), theBegin, middle, _1),
+            boost::bind<void>(sort<RandomAccessIteratorT>, boost::ref( theService ), middle, theEnd, _1),
+            boost::bind<void>(merge<RandomAccessIteratorT>, theBegin, theEnd, theCallback)
         );
     }
 }
