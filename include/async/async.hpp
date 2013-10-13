@@ -3,7 +3,7 @@
 
 // boost headers
 #include <boost/fusion/container/generation/make_vector.hpp>
-#include <boost/fusion/functional/generation/make_fused_procedure.hpp>
+#include <boost/fusion/functional/generation/make_unfused.hpp>
 #include <boost/optional/optional_fwd.hpp>
 #include <boost/preprocessor/iteration/iterate.hpp>
 #include <boost/preprocessor/iteration/local.hpp>
@@ -46,7 +46,9 @@ Arguments<SignT, i> &getReference(Arguments<SignT, i> &theRef)
 template<int id, typename PtrT>
 struct TaskWithContinuation
 {
-    typedef boost::fusion::fused_procedure<TaskWithContinuation> Type;
+    typedef void result_type;
+
+    typedef boost::fusion::unfused<TaskWithContinuation> Type;
 
     explicit TaskWithContinuation(PtrT const &theState)
         : m_state( theState )
@@ -73,8 +75,9 @@ template<int id, class PtrT>
 typename TaskWithContinuation<id, PtrT>::Type inline
 buildContinuationTask(PtrT const &theState)
 {
-    typedef typename TaskWithContinuation<id, PtrT>::Type Type;
-    return static_cast<Type>(TaskWithContinuation<id, PtrT>( theState ));
+    return boost::fusion::make_unfused(
+        TaskWithContinuation<id, PtrT>( theState )
+    );
 }
 
 template<class PtrT> inline
@@ -123,13 +126,13 @@ struct AsyncState<ASYNC_PP_ITERATION>
 template<ASYNC_PP_typename_A, class ContinuationF>
 struct AsyncState<ASYNC_PP_ITERATION>::Type
 {
-    mutable int m_count;
+    mutable int m_counter;
     ContinuationF m_callback;
 
     typename ArgumentsList<ASYNC_PP_ITERATION>::template Type<ASYNC_PP_A> m_arguments;
 
     explicit Type(ContinuationF theCallback)
-        : m_count( ASYNC_PP_ITERATION )
+        : m_counter( BOOST_PP_INC( ASYNC_PP_ITERATION ) )
         , m_callback( theCallback )
         , m_arguments()
     {
@@ -157,8 +160,11 @@ void asyncInvoke(boost::asio::io_service &theService, ASYNC_PP_A_a, Continuation
         Type
     > state( boost::make_shared<Type>( onComplite ) );
     
-    #define BOOST_PP_LOCAL_MACRO(n) \
-        theService.post(boost::bind(BOOST_PP_CAT(a, n), buildContinuationTask<n>(state)));
+    #define BOOST_PP_LOCAL_MACRO(n)          \
+        theService.post(                     \
+            boost::bind(BOOST_PP_CAT(a, n),  \
+            buildContinuationTask<n>(state)) \
+        );
 
     #define BOOST_PP_LOCAL_LIMITS (0, BOOST_PP_DEC(ASYNC_PP_ITERATION))
 
