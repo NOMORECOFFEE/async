@@ -10,6 +10,9 @@
 #include <boost/asio/io_service.hpp>
 #include <boost/bind.hpp>
 #include <boost/make_shared.hpp>
+#include <boost/fusion/adapted/mpl.hpp>
+#include <boost/fusion/algorithm/transformation/join.hpp>
+#include <boost/fusion/functional/invocation/invoke_procedure.hpp>
 
 #include <async/type_traits.hpp>
 
@@ -39,6 +42,12 @@ struct Arguments
 
 template<int i, class SignT>
 Arguments<SignT, i> &getReference(Arguments<SignT, i> &theRef)
+{
+    return theRef;
+}
+
+template<int i, class SignT>
+Arguments<SignT, i> const &getReference(Arguments<SignT, i> const &theRef)
 {
     return theRef;
 }
@@ -80,9 +89,28 @@ buildContinuationTask(PtrT const &theState)
     );
 }
 
+struct JoinArguments
+{
+    template<class SingT>
+    struct result;
+
+    template<class R, class T0, class T1>
+    struct result<R(T0, T1)>
+    {
+        typedef typename boost::fusion::result_of::join<T0, T1>::type type;
+    };
+
+    template<class T0, class T1>
+    typename result<void(T0, T1)>::type operator()(T0 theAcc, T1 theValue) const
+    {
+        return boost::fusion::join(theAcc, theValue);
+    }
+};
+
 template<class PtrT> inline
 void invokeContinuation(PtrT theState)
 {
+    invokeContinuation(theState->m_callback, theState->m_arguments);
 }
 
 #define BOOST_PP_ITERATION_PARAMS_1 (3, (1, 5, "async/async.hpp"))
@@ -132,21 +160,47 @@ struct AsyncState<ASYNC_PP_ITERATION>::Type
     typename ArgumentsList<ASYNC_PP_ITERATION>::template Type<ASYNC_PP_A> m_arguments;
 
     explicit Type(ContinuationF theCallback)
-        : m_counter( BOOST_PP_INC( ASYNC_PP_ITERATION ) )
+        : m_counter( ASYNC_PP_ITERATION )
         , m_callback( theCallback )
         , m_arguments()
     {
     }
 };
 
+template<ASYNC_PP_typename_T, class ContinuationF> inline
+void invokeContinuation(
+    ContinuationF theCallback,
+    typename ArgumentsList<ASYNC_PP_ITERATION>::template Type<ASYNC_PP_T> const &theArguments
+)
+{
+    #define BOOST_PP_LOCAL_MACRO(n)                                                         \
+        Arguments<BOOST_PP_CAT(A,n), n> const &BOOST_PP_CAT(aRef, n) = theArguments;    \
+        typedef typename Arguments<BOOST_PP_CAT(A,n), n>::Type BOOST_PP_CAT(Type, n);   \
+        BOOST_PP_CAT(Type,n) const &BOOST_PP_CAT(a, n) = BOOST_PP_CAT(aRef, n).value.get(); \
+       /**/
+
+    #define BOOST_PP_LOCAL_LIMITS (0, BOOST_PP_DEC(ASYNC_PP_ITERATION))
+
+    #include BOOST_PP_LOCAL_ITERATE()
+
+    boost::fusion::invoke_procedure(
+        theCallback,
+        boost::fusion::accumulate(
+            boost::fusion::make_vector(ASYNC_PP_a),
+            boost::fusion::make_vector(),
+            JoinArguments()
+        )
+    );
+}
+
 template<ASYNC_PP_typename_T, ASYNC_PP_typename_A, typename ContinuationF> inline
 void asyncInvoke(boost::asio::io_service &theService, ASYNC_PP_A_a, ContinuationF onComplite);
 
 template<ASYNC_PP_typename_T, ASYNC_PP_typename_A, typename ContinuationF> inline
-void callAsync(boost::asio::io_service &theService, ASYNC_PP_A_a, ContinuationF onComplite);
+void async(boost::asio::io_service &theService, ASYNC_PP_A_a, ContinuationF onComplite);
 
 template<ASYNC_PP_typename_T, ASYNC_PP_typename_A, typename ContinuationF>
-void callAsync(boost::asio::io_service &theService, ASYNC_PP_A_a, ContinuationF onComplite)
+void async(boost::asio::io_service &theService, ASYNC_PP_A_a, ContinuationF onComplite)
 {
     asyncInvoke<ASYNC_PP_T>(boost::ref( theService ), ASYNC_PP_a, theService.wrap( onComplite ));
 }

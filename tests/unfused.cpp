@@ -7,6 +7,8 @@
 using namespace boost;
 using namespace boost::fusion;
 
+BOOST_AUTO_TEST_SUITE(unfused_tests_suite)
+
 struct UnfusedCall
 {
     typedef void result_type;
@@ -24,3 +26,5 @@ BOOST_AUTO_TEST_CASE(TestUnfusedCall)
 
     c(1, 2, 3);
 }
+
+BOOST_AUTO_TEST_SUITE_END()

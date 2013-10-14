@@ -5,8 +5,9 @@ CONFIG -= qt
 
 SOURCES += \
     tests/unfused.cpp \
-    tests/main.cpp \
-    examples/SeqSort/sort.cpp
+    examples/SeqSort/sort.cpp \
+    tests/test_async.cpp \
+    tests/test_main.cpp
 
 HEADERS += \
     examples/SeqSort/sort.hpp \
@@ -18,5 +19,6 @@ HEADERS += \
 INCLUDEPATH += include
 
 LIBS += -lboost_unit_test_framework
+LIBS += -lboost_system
 
 #QMAKE_CXXFLAGS += -E

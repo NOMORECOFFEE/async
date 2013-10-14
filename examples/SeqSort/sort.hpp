@@ -37,7 +37,7 @@ void sort(
     {
         RandomAccessIteratorT middle = theBegin + size / 2;
 
-        callAsync<void(), void()>(
+        async<void(), void()>(
             boost::bind<void>(sort<RandomAccessIteratorT>, boost::ref( theService ), theBegin, middle, _1),
             boost::bind<void>(sort<RandomAccessIteratorT>, boost::ref( theService ), middle, theEnd, _1),
             boost::bind<void>(merge<RandomAccessIteratorT>, theBegin, theEnd, theCallback)
