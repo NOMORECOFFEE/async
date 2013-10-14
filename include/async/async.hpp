@@ -102,7 +102,7 @@ struct JoinArguments
     };
 
     template<class T0, class T1>
-    typename result<void(T0, T1)>::type operator()(T0 theAcc, T1 theValue) const
+    typename result<void(T0, T1)>::type operator()(T0 const &theAcc, T1 const &theValue) const
     {
         return boost::fusion::join(theAcc, theValue);
     }
@@ -174,11 +174,9 @@ void invokeContinuation(
     typename ArgumentsList<ASYNC_PP_ITERATION>::template Type<ASYNC_PP_T> theArguments
 )
 {
-    #define BOOST_PP_LOCAL_MACRO(n)                                                         \
-        Arguments<BOOST_PP_CAT(T,n), n> const &BOOST_PP_CAT(aRef, n) = theArguments;    \
-        typedef typename Arguments<BOOST_PP_CAT(T,n), n>::Type BOOST_PP_CAT(Type, n);   \
-        BOOST_PP_CAT(Type,n) const &BOOST_PP_CAT(a, n) = BOOST_PP_CAT(aRef, n).value.get(); \
-       /**/
+    #define BOOST_PP_LOCAL_MACRO(n)                                                                     \
+        typedef typename Arguments<BOOST_PP_CAT(T,n), n>::Type BOOST_PP_CAT(Type, n);                   \
+        BOOST_PP_CAT(Type,n) BOOST_PP_CAT(a, n) = getReference<n>( theArguments ).value.get();
 
     #define BOOST_PP_LOCAL_LIMITS (0, BOOST_PP_DEC(ASYNC_PP_ITERATION))
 
