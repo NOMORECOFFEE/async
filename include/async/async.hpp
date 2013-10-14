@@ -13,6 +13,7 @@
 #include <boost/fusion/adapted/mpl.hpp>
 #include <boost/fusion/algorithm/transformation/join.hpp>
 #include <boost/fusion/functional/invocation/invoke_procedure.hpp>
+#include <boost/fusion/algorithm/iteration/accumulate.hpp>
 
 #include <async/type_traits.hpp>
 
@@ -170,12 +171,12 @@ struct AsyncState<ASYNC_PP_ITERATION>::Type
 template<ASYNC_PP_typename_T, class ContinuationF> inline
 void invokeContinuation(
     ContinuationF theCallback,
-    typename ArgumentsList<ASYNC_PP_ITERATION>::template Type<ASYNC_PP_T> const &theArguments
+    typename ArgumentsList<ASYNC_PP_ITERATION>::template Type<ASYNC_PP_T> theArguments
 )
 {
     #define BOOST_PP_LOCAL_MACRO(n)                                                         \
-        Arguments<BOOST_PP_CAT(A,n), n> const &BOOST_PP_CAT(aRef, n) = theArguments;    \
-        typedef typename Arguments<BOOST_PP_CAT(A,n), n>::Type BOOST_PP_CAT(Type, n);   \
+        Arguments<BOOST_PP_CAT(T,n), n> const &BOOST_PP_CAT(aRef, n) = theArguments;    \
+        typedef typename Arguments<BOOST_PP_CAT(T,n), n>::Type BOOST_PP_CAT(Type, n);   \
         BOOST_PP_CAT(Type,n) const &BOOST_PP_CAT(a, n) = BOOST_PP_CAT(aRef, n).value.get(); \
        /**/
 
