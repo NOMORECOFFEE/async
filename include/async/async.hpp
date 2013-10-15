@@ -2,29 +2,24 @@
 #define ASYNC_HPP_INCLUDED 1
 
 // boost headers
+#include <boost/asio/io_service.hpp>
+#include <boost/bind.hpp>
+#include <boost/fusion/adapted/mpl.hpp>
+#include <boost/fusion/algorithm/iteration/accumulate.hpp>
+#include <boost/fusion/algorithm/transformation/join.hpp>
 #include <boost/fusion/container/generation/make_vector.hpp>
+#include <boost/fusion/functional/generation/make_fused_procedure.hpp>
 #include <boost/fusion/functional/generation/make_unfused.hpp>
+#include <boost/make_shared.hpp>
 #include <boost/optional/optional_fwd.hpp>
 #include <boost/preprocessor/iteration/iterate.hpp>
 #include <boost/preprocessor/iteration/local.hpp>
-#include <boost/asio/io_service.hpp>
-#include <boost/bind.hpp>
-#include <boost/make_shared.hpp>
-#include <boost/fusion/adapted/mpl.hpp>
-#include <boost/fusion/algorithm/transformation/join.hpp>
-#include <boost/fusion/algorithm/iteration/accumulate.hpp>
+#include <boost/preprocessor/iteration/self.hpp>
 #include <boost/type_traits/remove_reference.hpp>
-#include <boost/fusion/functional/generation/make_fused_procedure.hpp>
 
 #include <async/type_traits.hpp>
 
 // declaration, forward
-template<class T>
-struct RemoveRef;
-
-template<class SignT>
-struct ParameterTypes;
-
 template<class SeqT>
 struct ArgumentsListTransform;
 
@@ -123,9 +118,7 @@ void invokeContinuation(PtrT theState)
 #define BOOST_PP_ITERATION_PARAMS_1 (3, (1, 5, "async/async.hpp"))
 #include BOOST_PP_ITERATE()
 
-#elif BOOST_PP_IS_ITERATING
-
-#include <async/preprocessor/iterate_define.hpp>
+#elif BOOST_PP_IS_SELFISH
 
 template<>
 struct ArgumentsList<ASYNC_PP_ITERATION>
@@ -220,7 +213,7 @@ void asyncInvoke(boost::asio::io_service &theService, ASYNC_PP_A_a, Continuation
     boost::shared_ptr<
         Type
     > state( boost::make_shared<Type>( onComplite ) );
-    
+
     #define BOOST_PP_LOCAL_MACRO(n)          \
         theService.post(                     \
             boost::bind(BOOST_PP_CAT(a, n),  \
@@ -231,5 +224,11 @@ void asyncInvoke(boost::asio::io_service &theService, ASYNC_PP_A_a, Continuation
 
     #include BOOST_PP_LOCAL_ITERATE()
 }
+
+#elif BOOST_PP_IS_ITERATING
+
+#include <async/preprocessor/iterate_define.hpp>
+#define BOOST_PP_INDIRECT_SELF "async/async.hpp"
+#include BOOST_PP_INCLUDE_SELF()
 
 #endif // ASYNC_HPP_INCLUDED
