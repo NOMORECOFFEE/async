@@ -12,9 +12,7 @@
 #include <boost/make_shared.hpp>
 #include <boost/fusion/adapted/mpl.hpp>
 #include <boost/fusion/algorithm/transformation/join.hpp>
-#include <boost/fusion/functional/invocation/invoke_procedure.hpp>
 #include <boost/fusion/algorithm/iteration/accumulate.hpp>
-#include <boost/fusion/functional/adapter/fused.hpp>
 #include <boost/type_traits/remove_reference.hpp>
 #include <boost/fusion/functional/generation/make_fused_procedure.hpp>
 
