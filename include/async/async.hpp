@@ -14,6 +14,9 @@
 #include <boost/fusion/algorithm/transformation/join.hpp>
 #include <boost/fusion/functional/invocation/invoke_procedure.hpp>
 #include <boost/fusion/algorithm/iteration/accumulate.hpp>
+#include <boost/fusion/functional/adapter/fused.hpp>
+#include <boost/type_traits/remove_reference.hpp>
+#include <boost/fusion/functional/generation/make_fused_procedure.hpp>
 
 #include <async/type_traits.hpp>
 
@@ -72,7 +75,7 @@ struct TaskWithContinuation
 
         int volatile *counter = &(m_state->m_counter);
 
-        if (0 == __sync_fetch_and_sub(counter, 1))
+        if (0 == __sync_sub_and_fetch(counter, 1))
         {
             invokeContinuation( m_state );
         }
@@ -90,19 +93,24 @@ buildContinuationTask(PtrT const &theState)
     );
 }
 
+
 struct JoinArguments
 {
+
     template<class SingT>
     struct result;
 
     template<class R, class T0, class T1>
     struct result<R(T0, T1)>
     {
-        typedef typename boost::fusion::result_of::join<T0, T1>::type type;
+        typedef typename boost::fusion::result_of::join<
+            typename boost::remove_reference<T0>::type,
+            typename boost::remove_reference<T1>::type
+        >::type type;
     };
 
     template<class T0, class T1>
-    typename result<void(T0, T1)>::type operator()(T0 const &theAcc, T1 const &theValue) const
+    typename result<void(T0 const&, T1 const&)>::type  operator()(T0 const &theAcc, T1 const &theValue) const
     {
         return boost::fusion::join(theAcc, theValue);
     }
@@ -174,16 +182,18 @@ void invokeContinuation(
     typename ArgumentsList<ASYNC_PP_ITERATION>::template Type<ASYNC_PP_T> theArguments
 )
 {
-    #define BOOST_PP_LOCAL_MACRO(n)                                                                     \
-        typedef typename Arguments<BOOST_PP_CAT(T,n), n>::Type BOOST_PP_CAT(Type, n);                   \
-        BOOST_PP_CAT(Type,n) BOOST_PP_CAT(a, n) = getReference<n>( theArguments ).value.get();
+    #define BOOST_PP_LOCAL_MACRO(n) \
+       typename Arguments<BOOST_PP_CAT(T, n), n>::Type const &BOOST_PP_CAT(a, n) = ( \
+            getReference<n>(theArguments).value.get()                         \
+        );
 
     #define BOOST_PP_LOCAL_LIMITS (0, BOOST_PP_DEC(ASYNC_PP_ITERATION))
 
     #include BOOST_PP_LOCAL_ITERATE()
 
-    boost::fusion::invoke_procedure(
-        theCallback,
+    boost::fusion::fused_procedure<ContinuationF> callback( theCallback );
+
+    callback(
         boost::fusion::accumulate(
             boost::fusion::make_vector(ASYNC_PP_a),
             boost::fusion::make_vector(),

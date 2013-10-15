@@ -14,7 +14,7 @@ void onComplite0()
 {
 }
 
-void onComplite1(int theValue, int theValueIn)
+void onComplite2(int theValue, int theValueIn)
 {
     BOOST_REQUIRE_EQUAL(theValue, theValueIn);
 }
@@ -42,7 +42,21 @@ BOOST_AUTO_TEST_CASE(single_arguments_call)
 {
     io_service service;
 
-    async<void(int)>(boost::ref( service ), bind(SimpleFunc1, 10, _1), bind(onComplite1, 10, _1));
+    async<void(int)>(boost::ref( service ), bind(SimpleFunc1, 10, _1), bind(onComplite2, 10, _1));
+
+    service.run();
+}
+
+BOOST_AUTO_TEST_CASE(double_arguments_call)
+{
+    io_service service;
+
+    async<void(int), void(int)>(
+        boost::ref( service ),
+        bind(SimpleFunc1, 10, _1),
+        bind(SimpleFunc1, 10, _1),
+        onComplite2
+    );
 
     service.run();
 }
