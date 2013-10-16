@@ -1,6 +1,14 @@
 #ifndef INTEGRATE_HPP_INCLUDED
 #define INTEGRATE_HPP_INCLUDED 1
 
+#include <async/async.hpp>
+
+// boost headers
+#include <boost/function.hpp>
+#include <boost/ref.hpp>
+
+// stl headers
+#include <algorithm>
 
 const double EPS = 0.001;
 
