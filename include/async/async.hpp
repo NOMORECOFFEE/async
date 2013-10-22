@@ -194,25 +194,25 @@ void invokeContinuation(
 }
 
 template<ASYNC_PP_typename_T, ASYNC_PP_typename_A, typename ContinuationF> inline
-void asyncInvoke(boost::asio::io_service &theService, ASYNC_PP_A_a, ContinuationF onComplite);
+void asyncInvoke(boost::asio::io_service &theService, ASYNC_PP_A_a, ContinuationF onComplete);
 
 template<ASYNC_PP_typename_T, ASYNC_PP_typename_A, typename ContinuationF> inline
-void async(boost::asio::io_service &theService, ASYNC_PP_A_a, ContinuationF onComplite);
+void async(boost::asio::io_service &theService, ASYNC_PP_A_a, ContinuationF onComplete);
 
 template<ASYNC_PP_typename_T, ASYNC_PP_typename_A, typename ContinuationF>
-void async(boost::asio::io_service &theService, ASYNC_PP_A_a, ContinuationF onComplite)
+void async(boost::asio::io_service &theService, ASYNC_PP_A_a, ContinuationF onComplete)
 {
-    asyncInvoke<ASYNC_PP_T>(boost::ref( theService ), ASYNC_PP_a, theService.wrap( onComplite ));
+    asyncInvoke<ASYNC_PP_T>(boost::ref( theService ), ASYNC_PP_a, theService.wrap( onComplete ));
 }
 
 template<ASYNC_PP_typename_T, ASYNC_PP_typename_A, typename ContinuationF>
-void asyncInvoke(boost::asio::io_service &theService, ASYNC_PP_A_a, ContinuationF onComplite)
+void asyncInvoke(boost::asio::io_service &theService, ASYNC_PP_A_a, ContinuationF onComplete)
 {
     typedef typename AsyncState<ASYNC_PP_ITERATION>::template Type<ASYNC_PP_T, ContinuationF> Type;
 
     boost::shared_ptr<
         Type
-    > state( boost::make_shared<Type>( onComplite ) );
+    > state( boost::make_shared<Type>( onComplete ) );
 
     #define BOOST_PP_LOCAL_MACRO(n)          \
         theService.post(                     \
