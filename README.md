@@ -11,6 +11,7 @@ to conquer problems.
 
 example
 =======
+``` c++
 int sequentialFibonacci(n);
 
 void combineFibonacci(int x, int y, function<void(int)> sendResult)
@@ -33,3 +34,4 @@ void calculateFibonacci(asio::io_service& theService, int n, function<void(int)>
         bind(combineFibonacci, _1, _2, onComplite));
   }
 }
+```
