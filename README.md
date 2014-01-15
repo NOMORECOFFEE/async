@@ -19,7 +19,7 @@ void combineFibonacci(int x, int y, function<void(int)> sendResult)
   sendResult(x + y);
 }
 
-void calculateFibonacci(asio::io_service& theService, int n, function<void(int)> onComplite)
+void calculateFibonacci(asio::io_service& theService, int n, function<void(int)> onComplete)
 {
   if (n <= threshold)
   {
