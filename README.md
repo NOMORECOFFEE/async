@@ -31,7 +31,7 @@ void calculateFibonacci(asio::io_service& theService, int n, function<void(int)>
         io_service,
         bind(calculateFibonacci, ref(theService), n - 1, _1),
         bind(calculateFibonacci, ref(theService), n - 2, _1),
-        bind(combineFibonacci, _1, _2, onComplite));
+        bind(combineFibonacci, _1, _2, onComplete));
   }
 }
 ```
