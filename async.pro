@@ -21,4 +21,4 @@ INCLUDEPATH += include
 LIBS += -lboost_unit_test_framework
 LIBS += -lboost_system
 
-#QMAKE_CXXFLAGS += -E
+QMAKE_CXXFLAGS += -std=c++11

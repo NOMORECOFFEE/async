@@ -3,14 +3,11 @@
 
 // boost headers
 #include <boost/asio/io_service.hpp>
-#include <boost/bind.hpp>
 #include <boost/fusion/adapted/mpl.hpp>
 #include <boost/fusion/algorithm/iteration/accumulate.hpp>
 #include <boost/fusion/algorithm/transformation/join.hpp>
 #include <boost/fusion/container/generation/make_vector.hpp>
 #include <boost/fusion/functional/generation/make_fused_procedure.hpp>
-#include <boost/fusion/functional/generation/make_unfused.hpp>
-#include <boost/make_shared.hpp>
 #include <boost/optional/optional_fwd.hpp>
 #include <boost/preprocessor/iteration/iterate.hpp>
 #include <boost/preprocessor/iteration/local.hpp>
@@ -23,11 +20,28 @@
 template<class SeqT>
 struct ArgumentsListTransform;
 
-template<int id>
+template<typename ... SignT>
 struct ArgumentsList;
 
-template<int id>
-struct AsyncState;
+template<typename ... SignT>
+struct AsyncState
+{
+    template<typename ContinuationF>
+    struct Type
+    {
+        std::atomic<int> m_counter;
+        ContinuationF m_callback;
+
+        ArgumentsList<SignT ...> m_arguments;
+
+        explicit Type(ContinuationF theCallback)
+            : m_counter( sizeof ... (SignT) )
+            , m_callback( std::move(theCallback) )
+            , m_arguments()
+        {
+        }
+    };
+};
 
 template<typename SignT, int id>
 struct Arguments
@@ -37,13 +51,13 @@ struct Arguments
     boost::optional<Type> value;
 };
 
-template<int i, class SignT>
+template<int i, class SignT> constexpr
 Arguments<SignT, i> &getReference(Arguments<SignT, i> &theRef)
 {
     return theRef;
 }
 
-template<int i, class SignT>
+template<int i, class SignT> constexpr
 Arguments<SignT, i> const &getReference(Arguments<SignT, i> const &theRef)
 {
     return theRef;
@@ -54,52 +68,49 @@ struct TaskWithContinuation
 {
     typedef void result_type;
 
-    typedef boost::fusion::unfused<TaskWithContinuation> Type;
-
     explicit TaskWithContinuation(PtrT const &theState)
         : m_state( theState )
     {
     }
 
+    template<typename ...Args>
+    void operator()(Args && ... theArgs) const {
+        unfused(boost::fusion::make_vector(std::forward<Args>(theArgs) ...));
+    }
+
+private:
     template<typename SeqT>
-    void operator()(SeqT theSeq) const
-    {
-        getReference<id>( m_state->m_arguments ).value = theSeq;
+    void unfused(SeqT && theSeq) const {
+        getReference<id>( m_state->m_arguments ).value = std::move( theSeq );
 
-        int volatile *counter = &(m_state->m_counter);
+        auto &counter = m_state->m_counter;
 
-        if (0 == __sync_sub_and_fetch(counter, 1))
+        if (0 == --counter)
         {
             invokeContinuation( m_state );
         }
     }
-private:
+
     PtrT m_state;
 };
 
 template<int id, class PtrT>
-typename TaskWithContinuation<id, PtrT>::Type inline
+TaskWithContinuation<id, PtrT> inline
 buildContinuationTask(PtrT const &theState)
 {
-    return boost::fusion::make_unfused(
-        TaskWithContinuation<id, PtrT>( theState )
-    );
+    return TaskWithContinuation<id, PtrT>( theState );
 }
 
 
 struct JoinArguments
 {
-
     template<class SingT>
     struct result;
 
     template<class R, class T0, class T1>
     struct result<R(T0, T1)>
     {
-        typedef typename boost::fusion::result_of::join<
-            typename boost::remove_reference<T0>::type,
-            typename boost::remove_reference<T1>::type
-        >::type type;
+        using type = decltype(boost::fusion::join(std::declval<T0>(), std::declval<T1>()));
     };
 
     template<class T0, class T1>
@@ -120,15 +131,8 @@ void invokeContinuation(PtrT theState)
 
 #elif BOOST_PP_IS_SELFISH
 
-template<>
-struct ArgumentsList<ASYNC_PP_ITERATION>
-{
-    template<ASYNC_PP_typename_A>
-    struct Type;
-};
-
 template<ASYNC_PP_typename_A>
-struct ArgumentsList<ASYNC_PP_ITERATION>::Type
+struct ArgumentsList<ASYNC_PP_A>
     : BOOST_PP_ENUM_PARAMS(ASYNC_PP_ITERATION, ArgumentsListTransform<void(ASYNC_PP_A)>::Type)
 {
 };
@@ -137,44 +141,21 @@ template<ASYNC_PP_typename_A>
 struct ArgumentsListTransform<void(ASYNC_PP_A)>
 {
     #define BOOST_PP_LOCAL_MACRO(n) \
-        typedef Arguments<BOOST_PP_CAT(A, n), n> BOOST_PP_CAT(Type, n);
+        using BOOST_PP_CAT(Type, n) = Arguments<BOOST_PP_CAT(A, n), n>;
 
     #define BOOST_PP_LOCAL_LIMITS (0, BOOST_PP_DEC(ASYNC_PP_ITERATION))
 
     #include BOOST_PP_LOCAL_ITERATE()
 };
 
-template<>
-struct AsyncState<ASYNC_PP_ITERATION>
-{
-    template<ASYNC_PP_typename_A, class ContinuationF>
-    struct Type;
-};
-
-template<ASYNC_PP_typename_A, class ContinuationF>
-struct AsyncState<ASYNC_PP_ITERATION>::Type
-{
-    mutable int m_counter;
-    ContinuationF m_callback;
-
-    typename ArgumentsList<ASYNC_PP_ITERATION>::template Type<ASYNC_PP_A> m_arguments;
-
-    explicit Type(ContinuationF theCallback)
-        : m_counter( ASYNC_PP_ITERATION )
-        , m_callback( theCallback )
-        , m_arguments()
-    {
-    }
-};
-
-template<ASYNC_PP_typename_T, class ContinuationF> inline
+template<ASYNC_PP_typename_T, typename ContinuationF> inline
 void invokeContinuation(
     ContinuationF theCallback,
-    typename ArgumentsList<ASYNC_PP_ITERATION>::template Type<ASYNC_PP_T> theArguments
+    ArgumentsList<ASYNC_PP_T> theArguments
 )
 {
     #define BOOST_PP_LOCAL_MACRO(n) \
-       typename Arguments<BOOST_PP_CAT(T, n), n>::Type const &BOOST_PP_CAT(a, n) = ( \
+       auto const &BOOST_PP_CAT(a, n) = ( \
             getReference<n>(theArguments).value.get()                         \
         );
 
@@ -208,16 +189,13 @@ void async(boost::asio::io_service &theService, ASYNC_PP_A_a, ContinuationF onCo
 template<ASYNC_PP_typename_T, ASYNC_PP_typename_A, typename ContinuationF>
 void asyncInvoke(boost::asio::io_service &theService, ASYNC_PP_A_a, ContinuationF onComplete)
 {
-    typedef typename AsyncState<ASYNC_PP_ITERATION>::template Type<ASYNC_PP_T, ContinuationF> Type;
+    using Type = typename AsyncState<ASYNC_PP_T>::template Type<ContinuationF>;
 
-    boost::shared_ptr<
-        Type
-    > state( boost::make_shared<Type>( onComplete ) );
+    auto state( std::make_shared<Type>( onComplete ) );
 
     #define BOOST_PP_LOCAL_MACRO(n)          \
         theService.post(                     \
-            boost::bind(BOOST_PP_CAT(a, n),  \
-            buildContinuationTask<n>(state)) \
+            [=](){ BOOST_PP_CAT(a, n)(buildContinuationTask<n>(state)); } \
         );
 
     #define BOOST_PP_LOCAL_LIMITS (0, BOOST_PP_DEC(ASYNC_PP_ITERATION))
