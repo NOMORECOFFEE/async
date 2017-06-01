@@ -4,7 +4,6 @@ CONFIG -= app_bundle
 CONFIG -= qt
 
 SOURCES += \
-    tests/unfused.cpp \
     examples/SeqSort/sort.cpp \
     tests/test_async.cpp \
     tests/test_main.cpp
@@ -21,4 +20,4 @@ INCLUDEPATH += include
 LIBS += -lboost_unit_test_framework
 LIBS += -lboost_system
 
-QMAKE_CXXFLAGS += -std=c++11
+QMAKE_CXXFLAGS += -std=c++11 -g

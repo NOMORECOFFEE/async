@@ -3,7 +3,6 @@
 
 // boost headers
 #include <boost/asio/io_service.hpp>
-#include <boost/fusion/adapted/mpl.hpp>
 #include <boost/fusion/algorithm/iteration/accumulate.hpp>
 #include <boost/fusion/algorithm/transformation/join.hpp>
 #include <boost/fusion/container/generation/make_vector.hpp>
@@ -13,6 +12,9 @@
 #include <boost/preprocessor/iteration/local.hpp>
 #include <boost/preprocessor/iteration/self.hpp>
 #include <boost/type_traits/remove_reference.hpp>
+
+// std headers
+#include <atomic>
 
 #include <async/type_traits.hpp>
 
@@ -46,19 +48,19 @@ struct AsyncState
 template<typename SignT, int id>
 struct Arguments
 {
-    typedef typename AsyncParameterTypes<SignT>::Type Type;
+    typedef typename AsyncParameterTypes<SignT>::type type;
 
-    boost::optional<Type> value;
+    boost::optional<type> value;
 };
 
-template<int i, class SignT> constexpr
-Arguments<SignT, i> &getReference(Arguments<SignT, i> &theRef)
+template<int id, class SignT> constexpr
+Arguments<SignT, id> &getReference(Arguments<SignT, id> &theRef)
 {
     return theRef;
 }
 
-template<int i, class SignT> constexpr
-Arguments<SignT, i> const &getReference(Arguments<SignT, i> const &theRef)
+template<int id, class SignT> constexpr
+Arguments<SignT, id> const &getReference(Arguments<SignT, id> const &theRef)
 {
     return theRef;
 }
@@ -68,18 +70,18 @@ struct TaskWithContinuation
 {
     typedef void result_type;
 
-    explicit TaskWithContinuation(PtrT const &theState)
-        : m_state( theState )
+    explicit TaskWithContinuation(PtrT theState)
+        : m_state( std::move( theState ) )
     {
     }
 
     template<typename ...Args>
     void operator()(Args && ... theArgs) const {
-        unfused(boost::fusion::make_vector(std::forward<Args>(theArgs) ...));
+        unfused(boost::in_place(std::forward<Args>(theArgs) ...));
     }
 
 private:
-    template<typename SeqT>
+    template<typename SeqT> inline
     void unfused(SeqT && theSeq) const {
         getReference<id>( m_state->m_arguments ).value = std::move( theSeq );
 
@@ -96,9 +98,9 @@ private:
 
 template<int id, class PtrT>
 TaskWithContinuation<id, PtrT> inline
-buildContinuationTask(PtrT const &theState)
+buildContinuationTask(PtrT &&theState)
 {
-    return TaskWithContinuation<id, PtrT>( theState );
+    return TaskWithContinuation<id, PtrT>( std::forward<PtrT>(theState) );
 }
 
 
@@ -154,9 +156,9 @@ void invokeContinuation(
     ArgumentsList<ASYNC_PP_T> theArguments
 )
 {
-    #define BOOST_PP_LOCAL_MACRO(n) \
-       auto const &BOOST_PP_CAT(a, n) = ( \
-            getReference<n>(theArguments).value.get()                         \
+    #define BOOST_PP_LOCAL_MACRO(n)                   \
+       auto const &BOOST_PP_CAT(a, n) = (             \
+            getReference<n>(theArguments).value.get() \
         );
 
     #define BOOST_PP_LOCAL_LIMITS (0, BOOST_PP_DEC(ASYNC_PP_ITERATION))
@@ -195,7 +197,7 @@ void asyncInvoke(boost::asio::io_service &theService, ASYNC_PP_A_a, Continuation
 
     #define BOOST_PP_LOCAL_MACRO(n)          \
         theService.post(                     \
-            [=](){ BOOST_PP_CAT(a, n)(buildContinuationTask<n>(state)); } \
+            [=](){ BOOST_PP_CAT(a, n)(buildContinuationTask<n>(std::move(state))); } \
         );
 
     #define BOOST_PP_LOCAL_LIMITS (0, BOOST_PP_DEC(ASYNC_PP_ITERATION))

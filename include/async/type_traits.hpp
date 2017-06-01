@@ -2,29 +2,24 @@
 #define TYPE_TRAITS_HPP_INCLUDED 1
 
 // boost headers
-#include <boost/function_types/parameter_types.hpp>
-#include <boost/mpl/transform.hpp>
-#include <boost/type_traits/remove_reference.hpp>
-#include <boost/fusion/container/vector/convert.hpp>
+#include <boost/fusion/container/vector/vector_fwd.hpp>
 
-namespace extension
-{
-    template<class SignT, template <class T> class TransformationT>
-    struct AsyncParameterTypes
-    {
-        typedef typename boost::mpl::transform<
-            typename boost::function_types::parameter_types<SignT>::type,
-            TransformationT<boost::mpl::placeholders::_>
-        >::type Type;
-    };
-} // namespace extension
+// std headers
+#include <type_traits>
 
 template<class SignT>
-struct AsyncParameterTypes
+struct AsyncParameterTypes;
+
+template<typename R, typename ... Args>
+struct AsyncParameterTypes<R(*)(Args ...)>
 {
-    typedef typename boost::fusion::result_of::as_vector<
-        typename extension::AsyncParameterTypes<SignT, boost::remove_reference>::Type
-    >::type Type;
+    using type = boost::fusion::vector<typename std::decay<Args>::type ...>;
+};
+
+template<typename R, typename ... Args>
+struct AsyncParameterTypes<R(Args ...)>
+{
+    using type = typename AsyncParameterTypes<R(*)(Args ...)>::type;
 };
 
 #endif // TYPE_TRAITS_HPP_INCLUDED
