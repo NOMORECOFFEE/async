@@ -11,7 +11,6 @@
 #include <boost/preprocessor/iteration/iterate.hpp>
 #include <boost/preprocessor/iteration/local.hpp>
 #include <boost/preprocessor/iteration/self.hpp>
-#include <boost/type_traits/remove_reference.hpp>
 
 // std headers
 #include <atomic>
@@ -70,7 +69,7 @@ struct TaskWithContinuation
 {
     typedef void result_type;
 
-    explicit TaskWithContinuation(PtrT theState)
+    explicit TaskWithContinuation(PtrT theState) noexcept
         : m_state( std::move( theState ) )
     {
     }
@@ -185,7 +184,7 @@ void async(boost::asio::io_service &theService, ASYNC_PP_A_a, ContinuationF onCo
 template<ASYNC_PP_typename_T, ASYNC_PP_typename_A, typename ContinuationF>
 void async(boost::asio::io_service &theService, ASYNC_PP_A_a, ContinuationF onComplete)
 {
-    asyncInvoke<ASYNC_PP_T>(boost::ref( theService ), ASYNC_PP_a, theService.wrap( onComplete ));
+    asyncInvoke<ASYNC_PP_T>(boost::ref( theService ), ASYNC_PP_a, theService.wrap(std::move( onComplete )));
 }
 
 template<ASYNC_PP_typename_T, ASYNC_PP_typename_A, typename ContinuationF>
@@ -193,7 +192,7 @@ void asyncInvoke(boost::asio::io_service &theService, ASYNC_PP_A_a, Continuation
 {
     using Type = typename AsyncState<ASYNC_PP_T>::template Type<ContinuationF>;
 
-    auto state( std::make_shared<Type>( onComplete ) );
+    auto state( std::make_shared<Type>( std::move( onComplete ) ) );
 
     #define BOOST_PP_LOCAL_MACRO(n)          \
         theService.post(                     \
