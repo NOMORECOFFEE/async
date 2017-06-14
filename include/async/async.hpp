@@ -14,15 +14,16 @@
 
 // std headers
 #include <atomic>
+#include <tuple>
 
 #include <async/type_traits.hpp>
 
 // declaration, forward
-template<class SeqT>
-struct ArgumentsListTransform;
+template<typename SignT>
+struct Arguments;
 
 template<typename ... SignT>
-struct ArgumentsList;
+using ArgumentsList = std::tuple<Arguments<SignT> ...>;
 
 template<typename ... SignT>
 struct AsyncState
@@ -44,25 +45,13 @@ struct AsyncState
     };
 };
 
-template<typename SignT, int id>
+template<typename SignT>
 struct Arguments
 {
     typedef typename AsyncParameterTypes<SignT>::type type;
 
     boost::optional<type> value;
 };
-
-template<int id, class SignT> constexpr
-Arguments<SignT, id> &getReference(Arguments<SignT, id> &theRef)
-{
-    return theRef;
-}
-
-template<int id, class SignT> constexpr
-Arguments<SignT, id> const &getReference(Arguments<SignT, id> const &theRef)
-{
-    return theRef;
-}
 
 template<int id, typename PtrT>
 struct TaskWithContinuation
@@ -82,13 +71,13 @@ struct TaskWithContinuation
 private:
     template<typename SeqT> inline
     void unfused(SeqT && theSeq) const {
-        getReference<id>( m_state->m_arguments ).value = std::move( theSeq );
+        std::get<id>( m_state->m_arguments ).value = std::move( theSeq );
 
         auto &counter = m_state->m_counter;
 
         if (0 == --counter)
         {
-            invokeContinuation( m_state );
+            invokeContinuation(m_state);
         }
     }
 
@@ -132,23 +121,6 @@ void invokeContinuation(PtrT theState)
 
 #elif BOOST_PP_IS_SELFISH
 
-template<ASYNC_PP_typename_A>
-struct ArgumentsList<ASYNC_PP_A>
-    : BOOST_PP_ENUM_PARAMS(ASYNC_PP_ITERATION, ArgumentsListTransform<void(ASYNC_PP_A)>::Type)
-{
-};
-
-template<ASYNC_PP_typename_A>
-struct ArgumentsListTransform<void(ASYNC_PP_A)>
-{
-    #define BOOST_PP_LOCAL_MACRO(n) \
-        using BOOST_PP_CAT(Type, n) = Arguments<BOOST_PP_CAT(A, n), n>;
-
-    #define BOOST_PP_LOCAL_LIMITS (0, BOOST_PP_DEC(ASYNC_PP_ITERATION))
-
-    #include BOOST_PP_LOCAL_ITERATE()
-};
-
 template<ASYNC_PP_typename_T, typename ContinuationF> inline
 void invokeContinuation(
     ContinuationF theCallback,
@@ -157,7 +129,7 @@ void invokeContinuation(
 {
     #define BOOST_PP_LOCAL_MACRO(n)                   \
        auto const &BOOST_PP_CAT(a, n) = (             \
-            getReference<n>(theArguments).value.get() \
+            std::get<n>(theArguments).value.get()     \
         );
 
     #define BOOST_PP_LOCAL_LIMITS (0, BOOST_PP_DEC(ASYNC_PP_ITERATION))
