@@ -6,6 +6,7 @@
 
 // std headers
 #include <type_traits>
+#include <tuple>
 
 template<class SignT>
 struct AsyncParameterTypes;
@@ -13,7 +14,7 @@ struct AsyncParameterTypes;
 template<typename R, typename ... Args>
 struct AsyncParameterTypes<R(*)(Args ...)>
 {
-    using type = boost::fusion::vector<typename std::decay<Args>::type ...>;
+    using type = std::tuple<typename std::decay<Args>::type ...>;
 };
 
 template<typename R, typename ... Args>

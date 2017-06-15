@@ -37,6 +37,7 @@
     BOOST_PP_ENUM_PARAMS(ASYNC_PP_ITERATION, a)                             \
 /**/
 
+
 #define ASYNC_PP_A_ref                                                      \
     BOOST_PP_ENUM_BINARY_PARAMS(ASYNC_PP_ITERATION, A, & BOOST_PP_INTERCEPT)\
 /**/

@@ -1,8 +1,8 @@
 // boost headers
 #include <boost/test/unit_test.hpp>
-#include <boost/optional.hpp>
 
 #include <async/async.hpp>
+#include <boost/optional.hpp>
 
 #include <functional>
 

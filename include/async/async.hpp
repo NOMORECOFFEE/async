@@ -3,11 +3,11 @@
 
 // boost headers
 #include <boost/asio/io_service.hpp>
-#include <boost/fusion/algorithm/iteration/accumulate.hpp>
-#include <boost/fusion/algorithm/transformation/join.hpp>
-#include <boost/fusion/container/generation/make_vector.hpp>
+
+#include <boost/fusion/adapted/std_tuple.hpp>
 #include <boost/fusion/functional/generation/make_fused_procedure.hpp>
 #include <boost/optional/optional_fwd.hpp>
+#include <boost/utility/in_place_factory.hpp>
 #include <boost/preprocessor/iteration/iterate.hpp>
 #include <boost/preprocessor/iteration/local.hpp>
 #include <boost/preprocessor/iteration/self.hpp>
@@ -91,27 +91,8 @@ buildContinuationTask(PtrT &&theState)
     return TaskWithContinuation<id, PtrT>( std::forward<PtrT>(theState) );
 }
 
-
-struct JoinArguments
-{
-    template<class SingT>
-    struct result;
-
-    template<class R, class T0, class T1>
-    struct result<R(T0, T1)>
-    {
-        using type = decltype(boost::fusion::join(std::declval<T0>(), std::declval<T1>()));
-    };
-
-    template<class T0, class T1>
-    typename result<void(T0 const&, T1 const&)>::type  operator()(T0 const &theAcc, T1 const &theValue) const
-    {
-        return boost::fusion::join(theAcc, theValue);
-    }
-};
-
 template<class PtrT> inline
-void invokeContinuation(PtrT theState)
+void invokeContinuation(PtrT &&theState)
 {
     invokeContinuation(theState->m_callback, theState->m_arguments);
 }
@@ -136,15 +117,7 @@ void invokeContinuation(
 
     #include BOOST_PP_LOCAL_ITERATE()
 
-    boost::fusion::fused_procedure<ContinuationF> callback( theCallback );
-
-    callback(
-        boost::fusion::accumulate(
-            boost::fusion::make_vector(ASYNC_PP_a),
-            boost::fusion::make_vector(),
-            JoinArguments()
-        )
-    );
+    boost::fusion::make_fused_procedure( theCallback )( std::tuple_cat(ASYNC_PP_a) );
 }
 
 template<ASYNC_PP_typename_T, ASYNC_PP_typename_A, typename ContinuationF> inline
@@ -156,7 +129,7 @@ void async(boost::asio::io_service &theService, ASYNC_PP_A_a, ContinuationF onCo
 template<ASYNC_PP_typename_T, ASYNC_PP_typename_A, typename ContinuationF>
 void async(boost::asio::io_service &theService, ASYNC_PP_A_a, ContinuationF onComplete)
 {
-    asyncInvoke<ASYNC_PP_T>(boost::ref( theService ), ASYNC_PP_a, theService.wrap(std::move( onComplete )));
+    asyncInvoke<ASYNC_PP_T>(boost::ref( theService ), ASYNC_PP_a, std::move( onComplete ));
 }
 
 template<ASYNC_PP_typename_T, ASYNC_PP_typename_A, typename ContinuationF>
