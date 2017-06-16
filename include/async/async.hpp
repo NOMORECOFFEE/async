@@ -101,7 +101,7 @@ void invokeContinuation(PtrT &&theState)
 template<typename ... SignT, typename ContinuationF> inline
 void invokeContinuation(ContinuationF &&theCallback, ArgumentsList<SignT ...> theArguments)
 {
-    invokeContinuation(std::forward<ContinuationF>(theCallback), theArguments, std::index_sequence_for<SignT ...>());
+    invokeContinuation(std::forward<ContinuationF>(theCallback), std::move(theArguments), std::index_sequence_for<SignT ...>());
 }
 
 template<typename ContinuationF, typename ArgsT, size_t ... I> inline
