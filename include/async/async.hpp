@@ -15,6 +15,7 @@
 // std headers
 #include <atomic>
 #include <tuple>
+#include <utility>
 
 #include <async/type_traits.hpp>
 
@@ -97,28 +98,24 @@ void invokeContinuation(PtrT &&theState)
     invokeContinuation(theState->m_callback, theState->m_arguments);
 }
 
+template<typename ... SignT, typename ContinuationF> inline
+void invokeContinuation(ContinuationF &&theCallback, ArgumentsList<SignT ...> theArguments)
+{
+    invokeContinuation(std::forward<ContinuationF>(theCallback), theArguments, std::index_sequence_for<SignT ...>());
+}
+
+template<typename ContinuationF, typename ArgsT, size_t ... I> inline
+void invokeContinuation(ContinuationF &&theCallback, ArgsT &&theArguments, std::index_sequence<I...>)
+{
+     boost::fusion::make_fused_procedure( std::forward<ContinuationF>(theCallback) )(
+         std::tuple_cat( std::get<I>(std::forward<ArgsT>(theArguments)).value.get() ... )
+    );
+}
+
 #define BOOST_PP_ITERATION_PARAMS_1 (3, (1, 5, "async/async.hpp"))
 #include BOOST_PP_ITERATE()
 
 #elif BOOST_PP_IS_SELFISH
-
-template<ASYNC_PP_typename_T, typename ContinuationF> inline
-void invokeContinuation(
-    ContinuationF theCallback,
-    ArgumentsList<ASYNC_PP_T> theArguments
-)
-{
-    #define BOOST_PP_LOCAL_MACRO(n)                   \
-       auto const &BOOST_PP_CAT(a, n) = (             \
-            std::get<n>(theArguments).value.get()     \
-        );
-
-    #define BOOST_PP_LOCAL_LIMITS (0, BOOST_PP_DEC(ASYNC_PP_ITERATION))
-
-    #include BOOST_PP_LOCAL_ITERATE()
-
-    boost::fusion::make_fused_procedure( theCallback )( std::tuple_cat(ASYNC_PP_a) );
-}
 
 template<ASYNC_PP_typename_T, ASYNC_PP_typename_A, typename ContinuationF> inline
 void asyncInvoke(boost::asio::io_service &theService, ASYNC_PP_A_a, ContinuationF onComplete);
