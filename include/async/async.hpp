@@ -16,6 +16,7 @@
 #include <atomic>
 #include <tuple>
 #include <utility>
+#include <memory>
 
 #include <async/type_traits.hpp>
 
@@ -72,7 +73,7 @@ struct TaskWithContinuation
 private:
     template<typename SeqT> inline
     void unfused(SeqT && theSeq) const {
-        std::get<id>( m_state->m_arguments ).value = std::move( theSeq );
+        std::get<id>( m_state->m_arguments ).value = std::forward<SeqT>( theSeq );
 
         auto &counter = m_state->m_counter;
 
@@ -85,11 +86,10 @@ private:
     PtrT m_state;
 };
 
-template<int id, class PtrT>
-TaskWithContinuation<id, PtrT> inline
-buildContinuationTask(PtrT &&theState)
+template<int id, class PtrT> inline
+auto buildContinuationTask(PtrT &&theState)
 {
-    return TaskWithContinuation<id, PtrT>( std::forward<PtrT>(theState) );
+    return TaskWithContinuation<id, typename std::decay<PtrT>::type>( std::forward<PtrT>(theState) );
 }
 
 template<class PtrT> inline
@@ -118,27 +118,27 @@ void invokeContinuation(ContinuationF &&theCallback, ArgsT &&theArguments, std::
 #elif BOOST_PP_IS_SELFISH
 
 template<ASYNC_PP_typename_T, ASYNC_PP_typename_A, typename ContinuationF> inline
-void asyncInvoke(boost::asio::io_service &theService, ASYNC_PP_A_a, ContinuationF onComplete);
+void asyncInvoke(boost::asio::io_service &theService, ASYNC_PP_A_a, ContinuationF &&onComplete);
 
 template<ASYNC_PP_typename_T, ASYNC_PP_typename_A, typename ContinuationF> inline
-void async(boost::asio::io_service &theService, ASYNC_PP_A_a, ContinuationF onComplete);
+void async(boost::asio::io_service &theService, ASYNC_PP_A_a, ContinuationF &&onComplete);
 
 template<ASYNC_PP_typename_T, ASYNC_PP_typename_A, typename ContinuationF>
-void async(boost::asio::io_service &theService, ASYNC_PP_A_a, ContinuationF onComplete)
+void async(boost::asio::io_service &theService, ASYNC_PP_A_a, ContinuationF &&onComplete)
 {
-    asyncInvoke<ASYNC_PP_T>(boost::ref( theService ), ASYNC_PP_a, std::move( onComplete ));
+    asyncInvoke<ASYNC_PP_T>(boost::ref( theService ), ASYNC_PP_a, std::forward<ContinuationF>( onComplete ));
 }
 
 template<ASYNC_PP_typename_T, ASYNC_PP_typename_A, typename ContinuationF>
-void asyncInvoke(boost::asio::io_service &theService, ASYNC_PP_A_a, ContinuationF onComplete)
+void asyncInvoke(boost::asio::io_service &theService, ASYNC_PP_A_a, ContinuationF &&onComplete)
 {
-    using Type = typename AsyncState<ASYNC_PP_T>::template Type<ContinuationF>;
+    using type = typename AsyncState<ASYNC_PP_T>::template Type<ContinuationF>;
 
-    auto state( std::make_shared<Type>( std::move( onComplete ) ) );
+    auto state( std::make_shared<type>( std::forward<ContinuationF>( onComplete ) ) );
 
     #define BOOST_PP_LOCAL_MACRO(n)          \
         theService.post(                     \
-            [=](){ BOOST_PP_CAT(a, n)(buildContinuationTask<n>(std::move(state))); } \
+            [task = std::move(BOOST_PP_CAT(a, n)), args = buildContinuationTask<n>(state)](){ task(args); } \
         );
 
     #define BOOST_PP_LOCAL_LIMITS (0, BOOST_PP_DEC(ASYNC_PP_ITERATION))
