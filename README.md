@@ -23,7 +23,7 @@ void calculateFibonacci(asio::io_service& theService, int n, function<void(int)>
 {
   if (n <= threshold)
   {
-    f(sequentialFibonacci(n));
+    onComplete(sequentialFibonacci(n));
   }
   else
   {
